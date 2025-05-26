@@ -1,0 +1,47 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
+
+contract TelegramNFT is ERC721URIStorage, Ownable {
+    using Counters for Counters.Counter;
+
+    Counters.Counter private _tokenIdCounter;
+
+    mapping(address => bool) public authorizedMinters;
+
+    // Event emitted when a new NFT is minted
+    event NFTMinted(address indexed recipient, uint256 tokenId, string tokenURI);
+
+    // Constructor properly initializing ERC721 and Ownable
+    constructor(address initialOwner) ERC721("TelegramNFT", "TGNFT") Ownable(initialOwner) {}
+
+    // Modifier to restrict minting to authorized addresses
+    modifier onlyAuthorizedMinter() {
+        require(authorizedMinters[msg.sender], "Not an authorized minter");
+        _;
+    }
+
+    // Function to authorize a new minter
+    function authorizeMinter(address minter) external onlyOwner {
+        authorizedMinters[minter] = true;
+    }
+
+    // Function to revoke minter authorization
+    function revokeMinter(address minter) external onlyOwner {
+        authorizedMinters[minter] = false;
+    }
+
+    // Mint a new NFT
+    function mintNFT(address to, string memory uri) external onlyAuthorizedMinter {
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+
+        _mint(to, tokenId);
+        _setTokenURI(tokenId, uri);
+
+        emit NFTMinted(to, tokenId, uri);
+    }
+}
